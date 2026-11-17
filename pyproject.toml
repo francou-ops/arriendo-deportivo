@@ -1,0 +1,13 @@
+[project]
+name = "arriendo-deportivo"
+version = "0.1.0"
+description = "Sistema de gestión de arriendo de equipamiento deportivo"
+readme = "README.md"
+authors = [
+    { name = "Franco Lillo", email = "209709831+francou-ops@users.noreply.github.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "sqlalchemy>=2.1.9",
+]
