@@ -63,6 +63,7 @@ class Arriendo(Base):
     fecha_fin_prevista: Mapped[date] = mapped_column(Date, nullable=False)
     cantidad: Mapped[int] = mapped_column(Integer, nullable=False)
     estado: Mapped[str] = mapped_column(String(10), nullable=False, default="ACTIVO")
+    costo_total: Mapped[float] = mapped_column(Float, nullable=False) # Costo guardado al registrar el arriendo
 
     equipo: Mapped["Equipo"] = relationship(back_populates="arriendos") # Relación con la clase Equipo
     cliente: Mapped["Cliente"] = relationship(back_populates="arriendos") # Relación con la clase Cliente
