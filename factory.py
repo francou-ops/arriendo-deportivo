@@ -80,5 +80,12 @@ def crear_tipo_equipo(tipo):
     """Recibe el texto guardado en la BD y devuelve el objeto correcto."""
     fabrica = FABRICAS.get(tipo.strip().lower())
     if fabrica is None:
-        raise ValueError("Tipo de equipo no válido")
+        raise ValueError(f"Tipo no válido. Opciones: {', '.join(TIPOS_VALIDOS)}")
     return fabrica.crear()
+
+
+def calcular_costo_arriendo(arriendo):
+    """Crea el tipo según el equipo guardado en la BD y calcula el costo."""
+    tipo = crear_tipo_equipo(arriendo.equipo.tipo)
+    dias = (arriendo.fecha_fin_prevista - arriendo.fecha_inicio).days + 1
+    return tipo.calcular_costo(arriendo.equipo.precio_diario, dias, arriendo.cantidad)
