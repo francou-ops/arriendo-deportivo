@@ -1,12 +1,14 @@
-from math import isfinite
 from sqlalchemy.exc import IntegrityError
+
 from conexion import SessionLocal
+from factory import crear_tipo_equipo
 from models import Categoria, Cliente, Equipo
 
 
 def validar_texto(valor, campo):
     if not isinstance(valor, str) or not valor.strip():
         raise ValueError(f"El campo {campo} es obligatorio.")
+
     return valor.strip()
 
 
@@ -64,28 +66,42 @@ def insertar_cliente(nombre, correo, telefono=None):
 
 def insertar_equipo(nombre, tipo, categoria_id, precio_diario, stock_total):
     nombre = validar_texto(nombre, "nombre")
-    tipo = validar_texto(tipo, "tipo")
+
+    # Acepta, por ejemplo, "Balón" y "Protección".
+    tipo = validar_texto(tipo, "tipo").lower().replace("ó", "o")
+
+    # La fábrica valida el tipo y entrega su nombre para guardarlo en la BD.
+    tipo = crear_tipo_equipo(tipo).nombre
 
     if type(categoria_id) is not int or categoria_id <= 0:
-        raise ValueError("El ID de la categoría debe ser un entero positivo.")
+        raise ValueError(
+            "El ID de la categoría debe ser un entero positivo."
+        )
 
-    if (
-        isinstance(precio_diario, bool)
-        or not isinstance(precio_diario, (int, float))
-        or not isfinite(precio_diario)
-        or precio_diario <= 0
-    ):
-        raise ValueError("El precio diario debe ser un número mayor que cero.")
+    if type(precio_diario) not in (int, float):
+        raise ValueError(
+            "El precio diario debe ser un número."
+        )
+
+    # Acepta precios positivos y finitos sin usar math.
+    if not 0 < precio_diario < float("inf"):
+        raise ValueError(
+            "El precio diario debe ser mayor que cero y menor que infinito."
+        )
 
     if type(stock_total) is not int or stock_total < 0:
-        raise ValueError("El stock total debe ser un entero mayor o igual a cero.")
+        raise ValueError(
+            "El stock total debe ser un entero mayor o igual a cero."
+        )
 
     try:
         with SessionLocal.begin() as sesion:
             categoria = sesion.get(Categoria, categoria_id)
 
             if categoria is None:
-                raise ValueError("La categoría seleccionada no existe.")
+                raise ValueError(
+                    "La categoría seleccionada no existe."
+                )
 
             equipo = Equipo(
                 nombre=nombre,
