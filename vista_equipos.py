@@ -3,6 +3,8 @@ from tkinter import messagebox, ttk
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from estilos import COLORES
+
 from actualizar import actualizar_equipo
 from consultar import consultar_categorias, consultar_equipos
 from eliminar import eliminar_equipo
@@ -12,6 +14,7 @@ from insertar import insertar_equipo
 
 def crear_vista_equipos(contenedor):
     nombre = tk.StringVar()
+    cantidad = tk.StringVar()
     tipo = tk.StringVar(value=TIPOS_VALIDOS[0])
     categoria = tk.StringVar()
     precio_diario = tk.StringVar()
@@ -53,11 +56,12 @@ def crear_vista_equipos(contenedor):
 
         for fila in tabla.get_children():
             tabla.delete(fila)
-        for equipo in equipos:
+        for indice, equipo in enumerate(equipos):
             tabla.insert("", "end", iid=str(equipo["id"]), values=(
                 equipo["id"], equipo["nombre"], equipo["tipo"], equipo["categoria"],
                 equipo["precio_diario"], equipo["stock_total"], equipo["stock_disponible"]
-            ))
+            ), tags=("par" if indice % 2 == 0 else "impar",))
+        cantidad.set(f"Registros: {len(equipos)}")
         limpiar()
         if not categorias:
             mensaje.set("Primero crea una categoría para poder registrar equipos.")
@@ -127,59 +131,86 @@ def crear_vista_equipos(contenedor):
         cargar_datos()
         mensaje.set("Equipo eliminado correctamente.")
 
-    ttk.Label(contenedor, text="Equipos", font=("Segoe UI", 14, "bold")).pack(anchor="w")
+    cabecera = ttk.Frame(contenedor, style="App.TFrame")
+    cabecera.pack(fill="x")
+    ttk.Label(cabecera, text="Equipos", style="TituloVista.TLabel").pack(side="left")
+    ttk.Label(cabecera, text="Selecciona un registro para editarlo.", style="Subtitulo.TLabel").pack(side="left", padx=(16, 0))
 
-    formulario = ttk.LabelFrame(contenedor, text="Datos del equipo", padding=10)
-    formulario.pack(fill="x", pady=(10, 10))
-    formulario.columnconfigure(1, weight=1)
-    formulario.columnconfigure(3, weight=1)
+    cuerpo = ttk.Frame(contenedor, style="App.TFrame")
+    cuerpo.pack(fill="both", expand=True, pady=(18, 0))
 
-    ttk.Label(formulario, text="Nombre:").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=nombre).grid(row=0, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="Tipo:").grid(row=0, column=2, sticky="w", padx=(15, 10), pady=4)
-    ttk.Combobox(formulario, textvariable=tipo, values=TIPOS_VALIDOS, state="readonly").grid(row=0, column=3, sticky="ew", pady=4)
+    # Reservamos el formulario a la derecha y el listado ocupa el resto.
+    panel = ttk.Frame(cuerpo, width=300, padding=16, style="Panel.TFrame")
+    panel.pack(side="right", fill="y", padx=(18, 0))
+    panel.pack_propagate(False)
+    ttk.Label(panel, text="Datos del equipo", style="TituloPanel.TLabel").pack(anchor="w", pady=(0, 18))
 
-    ttk.Label(formulario, text="Categoría:").grid(row=1, column=0, sticky="w", padx=(0, 10), pady=4)
-    lista_categoria = ttk.Combobox(formulario, textvariable=categoria, state="readonly")
-    lista_categoria.grid(row=1, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="Precio diario:").grid(row=1, column=2, sticky="w", padx=(15, 10), pady=4)
-    ttk.Entry(formulario, textvariable=precio_diario).grid(row=1, column=3, sticky="ew", pady=4)
-
-    ttk.Label(formulario, text="Stock total:").grid(row=2, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=stock_total).grid(row=2, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="El stock disponible se calcula automáticamente.", wraplength=300).grid(row=2, column=2, columnspan=2, sticky="w", padx=(15, 0), pady=4)
-
-    botones = ttk.Frame(contenedor)
-    botones.pack(fill="x", pady=(0, 10))
-    for texto, accion in [
-        ("Crear", crear),
-        ("Actualizar", actualizar),
-        ("Eliminar", eliminar),
-        ("Limpiar", limpiar),
-        ("Recargar", cargar_datos)
+    botones = ttk.Frame(panel)
+    botones.pack(side="bottom", fill="x")
+    for texto, accion, estilo in [
+        ("Crear", crear, "Primario.TButton"),
+        ("Actualizar", actualizar, "TButton"),
+        ("Limpiar", limpiar, "Discreto.TButton"),
+        ("Eliminar", eliminar, "Eliminar.TButton")
     ]:
-        ttk.Button(botones, text=texto, command=accion).pack(side="left", padx=(0, 6))
-    ttk.Checkbutton(botones, text="Solo disponibles", variable=solo_disponibles, command=cargar_datos).pack(side="right")
+        ttk.Button(botones, text=texto, command=accion, style=estilo).pack(fill="x", pady=(0, 8))
 
-    marco_tabla = ttk.Frame(contenedor)
-    marco_tabla.pack(fill="both", expand=True)
+    formulario = ttk.Frame(panel)
+    formulario.pack(fill="x")
+    formulario.columnconfigure(0, weight=1, uniform="campos")
+    formulario.columnconfigure(1, weight=1, uniform="campos")
+
+    ttk.Label(formulario, text="Nombre:").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 5))
+    ttk.Entry(formulario, textvariable=nombre, width=20).grid(row=1, column=0, columnspan=2, sticky="ew")
+    ttk.Label(formulario, text="Tipo:").grid(row=2, column=0, sticky="w", pady=(12, 5))
+    ttk.Combobox(formulario, textvariable=tipo, values=TIPOS_VALIDOS, state="readonly", width=12).grid(row=3, column=0, sticky="ew", padx=(0, 6))
+    ttk.Label(formulario, text="Categoría:").grid(row=2, column=1, sticky="w", padx=(6, 0), pady=(12, 5))
+    lista_categoria = ttk.Combobox(formulario, textvariable=categoria, state="readonly", width=12)
+    lista_categoria.grid(row=3, column=1, sticky="ew", padx=(6, 0))
+    ttk.Label(formulario, text="Precio diario:").grid(row=4, column=0, sticky="w", pady=(12, 5))
+    ttk.Entry(formulario, textvariable=precio_diario, width=12).grid(row=5, column=0, sticky="ew", padx=(0, 6))
+    ttk.Label(formulario, text="Stock total:").grid(row=4, column=1, sticky="w", padx=(6, 0), pady=(12, 5))
+    ttk.Entry(formulario, textvariable=stock_total, width=12).grid(row=5, column=1, sticky="ew", padx=(6, 0))
+    ttk.Label(formulario, text="El disponible se calcula automáticamente.", style="Ayuda.TLabel", wraplength=260).grid(row=6, column=0, columnspan=2, sticky="w", pady=(16, 0))
+
+    listado = ttk.Frame(cuerpo, style="Panel.TFrame")
+    listado.pack(fill="both", expand=True)
+
+    controles_tabla = ttk.Frame(listado, padding=(14, 12))
+    controles_tabla.pack(fill="x")
+    ttk.Label(controles_tabla, text="Listado", style="TituloPanel.TLabel").pack(side="left")
+    ttk.Button(controles_tabla, text="Recargar", command=cargar_datos, style="Discreto.TButton").pack(side="right")
+    ttk.Checkbutton(controles_tabla, text="Solo disponibles", variable=solo_disponibles, command=cargar_datos).pack(side="right", padx=(0, 8))
+
+    pie = ttk.Frame(listado, padding=(14, 10))
+    pie.pack(side="bottom", fill="x")
+    ttk.Label(pie, textvariable=cantidad, style="Ayuda.TLabel").pack(anchor="w")
+    ttk.Label(pie, textvariable=mensaje, style="Ayuda.TLabel", wraplength=450).pack(anchor="w", pady=(4, 0))
+    ttk.Frame(listado, height=1, style="Linea.TFrame").pack(side="bottom", fill="x")
+
+    marco_tabla = ttk.Frame(listado)
+    marco_tabla.pack(fill="both", expand=True, padx=1)
     marco_tabla.columnconfigure(0, weight=1)
     marco_tabla.rowconfigure(0, weight=1)
 
-    columnas = ("id", "nombre", "tipo", "categoria", "precio", "total", "disponible")
-    tabla = ttk.Treeview(marco_tabla, columns=columnas, show="headings", selectmode="browse")
+    # Conservamos los valores completos; mostramos las columnas más útiles.
+    tabla = ttk.Treeview(marco_tabla, columns=("id", "nombre", "tipo", "categoria", "precio", "total", "disponible"), displaycolumns=("nombre", "precio", "total", "disponible"), show="headings", selectmode="browse")
     for columna, titulo, ancho in [
         ("id", "ID", 50),
-        ("nombre", "Nombre", 160),
+        ("nombre", "Equipo", 230),
         ("tipo", "Tipo", 90),
         ("categoria", "Categoría", 130),
-        ("precio", "Precio diario", 100),
-        ("total", "Stock total", 90),
-        ("disponible", "Disponible", 90)
+        ("precio", "Precio/día", 100),
+        ("total", "Total", 70),
+        ("disponible", "Disponible", 100)
     ]:
-        tabla.heading(columna, text=titulo)
-        tabla.column(columna, width=ancho, minwidth=50)
-    tabla.column("id", stretch=False)
+        tabla.heading(columna, text=titulo, anchor="w")
+        tabla.column(columna, width=ancho, minwidth=60)
+    tabla.tag_configure("par", background=COLORES["fila"])
+    tabla.tag_configure("impar", background=COLORES["superficie"])
+    tabla.column("precio", anchor="e")
+    tabla.column("total", anchor="center")
+    tabla.column("disponible", anchor="center")
 
     barra_vertical = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla.yview)
     barra_horizontal = ttk.Scrollbar(marco_tabla, orient="horizontal", command=tabla.xview)
@@ -188,8 +219,6 @@ def crear_vista_equipos(contenedor):
     barra_vertical.grid(row=0, column=1, sticky="ns")
     barra_horizontal.grid(row=1, column=0, sticky="ew")
     tabla.bind("<<TreeviewSelect>>", seleccionar)
-
-    ttk.Label(contenedor, textvariable=mensaje, wraplength=700).pack(fill="x", pady=(8, 0))
 
     cargar_datos()
     return cargar_datos
