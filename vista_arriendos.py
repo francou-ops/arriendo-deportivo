@@ -4,6 +4,8 @@ from tkinter import messagebox, ttk
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from estilos import COLORES
+
 from arriendos import devolver_arriendo, registrar_arriendo
 from consultar import consultar_clientes, consultar_equipos_disponibles, consultar_historial_arriendos
 
@@ -19,6 +21,7 @@ def crear_vista_arriendos(contenedor):
     fecha_inicio = tk.StringVar()
     fecha_fin = tk.StringVar()
     cantidad = tk.StringVar()
+    total_registros = tk.StringVar()
     solo_activos = tk.BooleanVar(value=False)
     mensaje = tk.StringVar()
     equipos = {}
@@ -65,12 +68,13 @@ def crear_vista_arriendos(contenedor):
 
         for fila in tabla.get_children():
             tabla.delete(fila)
-        for arriendo in arriendos:
+        for indice, arriendo in enumerate(arriendos):
             tabla.insert("", "end", iid=str(arriendo["id"]), values=(
                 arriendo["id"], arriendo["equipo"], arriendo["cliente"],
                 arriendo["fecha_inicio"], arriendo["fecha_fin_prevista"],
                 arriendo["cantidad"], arriendo["estado"], formato_pesos(arriendo["costo_total"])
-            ))
+            ), tags=("par" if indice % 2 == 0 else "impar",))
+        total_registros.set(f"Registros: {len(arriendos)}")
         limpiar()
 
     def seleccionar(event):
@@ -123,42 +127,55 @@ def crear_vista_arriendos(contenedor):
         cargar_datos()
         mensaje.set("Arriendo devuelto correctamente.")
 
-    ttk.Label(contenedor, text="Arriendos", font=("Segoe UI", 14, "bold")).pack(anchor="w")
+    cabecera = ttk.Frame(contenedor)
+    cabecera.pack(fill="x")
+    ttk.Label(cabecera, text="Arriendos", style="TituloVista.TLabel").pack(side="left")
+    ttk.Label(cabecera, text="Registra arriendos y procesa devoluciones.", style="Ayuda.TLabel").pack(side="left", padx=(16, 0))
 
-    formulario = ttk.LabelFrame(contenedor, text="Nuevo arriendo", padding=10)
-    formulario.pack(fill="x", pady=(10, 10))
-    formulario.columnconfigure(1, weight=1)
-    formulario.columnconfigure(3, weight=1)
+    formulario = ttk.Frame(contenedor, padding=12, style="Panel.TFrame")
+    formulario.pack(fill="x", pady=(14, 14))
+    formulario.columnconfigure(0, weight=3)
+    formulario.columnconfigure(1, weight=3)
+    formulario.columnconfigure(2, weight=2)
+    formulario.columnconfigure(3, weight=2)
+    formulario.columnconfigure(4, weight=1)
 
-    ttk.Label(formulario, text="Equipo:").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=4)
-    lista_equipo = ttk.Combobox(formulario, textvariable=equipo, state="readonly")
-    lista_equipo.grid(row=0, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="Cliente:").grid(row=0, column=2, sticky="w", padx=(15, 10), pady=4)
-    lista_cliente = ttk.Combobox(formulario, textvariable=cliente, state="readonly")
-    lista_cliente.grid(row=0, column=3, sticky="ew", pady=4)
+    ttk.Label(formulario, text="Equipo:").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=(0, 6))
+    lista_equipo = ttk.Combobox(formulario, textvariable=equipo, state="readonly", width=26)
+    lista_equipo.grid(row=1, column=0, sticky="ew", padx=(0, 10))
+    ttk.Label(formulario, text="Cliente:").grid(row=0, column=1, sticky="w", padx=(0, 10), pady=(0, 6))
+    lista_cliente = ttk.Combobox(formulario, textvariable=cliente, state="readonly", width=20)
+    lista_cliente.grid(row=1, column=1, sticky="ew", padx=(0, 10))
+    ttk.Label(formulario, text="Fecha inicio:").grid(row=0, column=2, sticky="w", padx=(0, 10), pady=(0, 6))
+    ttk.Entry(formulario, textvariable=fecha_inicio, width=12).grid(row=1, column=2, sticky="ew", padx=(0, 10))
+    ttk.Label(formulario, text="Fecha término:").grid(row=0, column=3, sticky="w", padx=(0, 10), pady=(0, 6))
+    ttk.Entry(formulario, textvariable=fecha_fin, width=12).grid(row=1, column=3, sticky="ew", padx=(0, 10))
+    ttk.Label(formulario, text="Cantidad:").grid(row=0, column=4, sticky="w", pady=(0, 6))
+    ttk.Entry(formulario, textvariable=cantidad, width=7).grid(row=1, column=4, sticky="ew")
+    ttk.Label(formulario, text="Fechas en formato AAAA-MM-DD.", style="Ayuda.TLabel").grid(row=2, column=0, columnspan=5, sticky="w", pady=(8, 0))
 
-    ttk.Label(formulario, text="Fecha inicio:").grid(row=1, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=fecha_inicio).grid(row=1, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="Fecha término:").grid(row=1, column=2, sticky="w", padx=(15, 10), pady=4)
-    ttk.Entry(formulario, textvariable=fecha_fin).grid(row=1, column=3, sticky="ew", pady=4)
-
-    ttk.Label(formulario, text="Cantidad:").grid(row=2, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=cantidad).grid(row=2, column=1, sticky="ew", pady=4)
-    ttk.Label(formulario, text="Fechas en formato AAAA-MM-DD.").grid(row=2, column=2, columnspan=2, sticky="w", padx=(15, 0), pady=4)
-
+    # El mensaje se reserva antes que la tabla para que siempre quede visible.
+    ttk.Label(contenedor, textvariable=mensaje, style="Ayuda.TLabel", wraplength=850).pack(side="bottom", fill="x", pady=(10, 0))
     botones = ttk.Frame(contenedor)
-    botones.pack(fill="x", pady=(0, 10))
-    for texto, accion in [
-        ("Registrar", registrar),
-        ("Devolver", devolver),
-        ("Limpiar", limpiar),
-        ("Recargar", cargar_datos)
-    ]:
-        ttk.Button(botones, text=texto, command=accion).pack(side="left", padx=(0, 6))
-    ttk.Checkbutton(botones, text="Solo activos", variable=solo_activos, command=cargar_datos).pack(side="right")
+    botones.pack(side="bottom", fill="x", pady=(12, 0))
+    principales = ttk.Frame(botones)
+    principales.pack(side="left")
+    ttk.Button(principales, text="Registrar", command=registrar, style="Primario.TButton").pack(side="left", padx=(0, 8))
+    ttk.Button(principales, text="Devolver", command=devolver).pack(side="left")
+    ttk.Button(botones, text="Limpiar", command=limpiar, style="Discreto.TButton").pack(side="right")
 
-    marco_tabla = ttk.Frame(contenedor)
-    marco_tabla.pack(fill="both", expand=True)
+    listado = ttk.Frame(contenedor, style="Panel.TFrame")
+    listado.pack(fill="both", expand=True)
+    controles_tabla = ttk.Frame(listado, padding=(12, 8))
+    controles_tabla.pack(fill="x")
+    ttk.Label(controles_tabla, text="Historial", style="TituloPanel.TLabel").pack(side="left")
+    ttk.Button(controles_tabla, text="Recargar", command=cargar_datos, style="Discreto.TButton").pack(side="right")
+    ttk.Checkbutton(controles_tabla, text="Solo activos", variable=solo_activos, command=cargar_datos).pack(side="right", padx=(0, 8))
+    ttk.Label(listado, textvariable=total_registros, style="Ayuda.TLabel").pack(side="bottom", fill="x", padx=12, pady=8)
+    ttk.Frame(listado, height=1, style="Linea.TFrame").pack(side="bottom", fill="x")
+
+    marco_tabla = ttk.Frame(listado)
+    marco_tabla.pack(fill="both", expand=True, padx=1)
     marco_tabla.columnconfigure(0, weight=1)
     marco_tabla.rowconfigure(0, weight=1)
 
@@ -166,17 +183,21 @@ def crear_vista_arriendos(contenedor):
     tabla = ttk.Treeview(marco_tabla, columns=columnas, show="headings", selectmode="browse")
     for columna, titulo, ancho in [
         ("id", "ID", 50),
-        ("equipo", "Equipo", 150),
-        ("cliente", "Cliente", 130),
-        ("inicio", "Inicio", 95),
-        ("fin", "Término", 95),
-        ("cantidad", "Cantidad", 70),
-        ("estado", "Estado", 85),
-        ("costo", "Costo total", 95)
+        ("equipo", "Equipo", 190),
+        ("cliente", "Cliente", 160),
+        ("inicio", "Inicio", 110),
+        ("fin", "Término", 110),
+        ("cantidad", "Cantidad", 80),
+        ("estado", "Estado", 100),
+        ("costo", "Costo total", 120)
     ]:
-        tabla.heading(columna, text=titulo)
+        tabla.heading(columna, text=titulo, anchor="w")
         tabla.column(columna, width=ancho, minwidth=50)
-    tabla.column("id", stretch=False)
+    tabla.column("id", stretch=False, anchor="center")
+    tabla.column("cantidad", anchor="center")
+    tabla.column("costo", anchor="e")
+    tabla.tag_configure("par", background=COLORES["fila"])
+    tabla.tag_configure("impar", background=COLORES["superficie"])
 
     barra_vertical = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla.yview)
     barra_horizontal = ttk.Scrollbar(marco_tabla, orient="horizontal", command=tabla.xview)
@@ -185,8 +206,6 @@ def crear_vista_arriendos(contenedor):
     barra_vertical.grid(row=0, column=1, sticky="ns")
     barra_horizontal.grid(row=1, column=0, sticky="ew")
     tabla.bind("<<TreeviewSelect>>", seleccionar)
-
-    ttk.Label(contenedor, textvariable=mensaje, wraplength=700).pack(fill="x", pady=(8, 0))
 
     cargar_datos()
     return cargar_datos
