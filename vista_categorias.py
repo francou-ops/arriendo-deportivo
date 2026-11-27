@@ -3,6 +3,8 @@ from tkinter import messagebox, ttk
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from estilos import COLORES
+
 from actualizar import actualizar_categoria
 from consultar import consultar_categorias
 from eliminar import eliminar_categoria
@@ -11,6 +13,7 @@ from insertar import insertar_categoria
 
 def crear_vista_categorias(contenedor):
     nombre = tk.StringVar()
+    cantidad = tk.StringVar()
     descripcion = tk.StringVar()
     mensaje = tk.StringVar(value="Selecciona una categoría en la tabla para editarla o eliminarla.")
 
@@ -38,10 +41,11 @@ def crear_vista_categorias(contenedor):
         for fila in tabla.get_children():
             tabla.delete(fila)
 
-        for registro in registros:
+        for indice, registro in enumerate(registros):
             tabla.insert("", "end", iid=str(registro["id"]), values=(
                 registro["id"], registro["nombre"], registro["descripcion"] or ""
-            ))
+            ), tags=("par" if indice % 2 == 0 else "impar",))
+        cantidad.set(f"Registros: {len(registros)}")
         limpiar()
 
     def seleccionar(event):
@@ -90,50 +94,65 @@ def crear_vista_categorias(contenedor):
         cargar_datos()
         mensaje.set("Categoría eliminada correctamente.")
 
-    ttk.Label(contenedor, text="Categorías", font=("Segoe UI", 14, "bold")).pack(anchor="w")
+    cabecera = ttk.Frame(contenedor)
+    cabecera.pack(fill="x")
+    ttk.Label(cabecera, text="Categorías", style="TituloVista.TLabel").pack(side="left")
+    ttk.Label(cabecera, text="Agrupa tus implementos por disciplina.", style="Ayuda.TLabel").pack(side="left", padx=(16, 0))
 
-    formulario = ttk.LabelFrame(contenedor, text="Datos de la categoría", padding=10)
-    formulario.pack(fill="x", pady=(10, 10))
-    formulario.columnconfigure(1, weight=1)
+    formulario = ttk.Frame(contenedor, padding=12, style="Panel.TFrame")
+    formulario.pack(fill="x", pady=(14, 14))
+    formulario.columnconfigure(0, weight=1)
+    ttk.Label(formulario, text="Nombre:").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=(0, 6))
+    ttk.Entry(formulario, textvariable=nombre, width=20).grid(row=1, column=0, sticky="ew", padx=(0, 10))
+    formulario.columnconfigure(1, weight=2)
+    ttk.Label(formulario, text="Descripción:").grid(row=0, column=1, sticky="w", padx=0, pady=(0, 6))
+    ttk.Entry(formulario, textvariable=descripcion, width=20).grid(row=1, column=1, sticky="ew", padx=0)
 
-    ttk.Label(formulario, text="Nombre:").grid(row=0, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=nombre).grid(row=0, column=1, sticky="ew", pady=4)
-
-    ttk.Label(formulario, text="Descripción:").grid(row=1, column=0, sticky="w", padx=(0, 10), pady=4)
-    ttk.Entry(formulario, textvariable=descripcion).grid(row=1, column=1, sticky="ew", pady=4)
-
+    # Reservamos el mensaje y las acciones antes de expandir el listado.
+    ttk.Label(contenedor, textvariable=mensaje, style="Ayuda.TLabel", wraplength=850).pack(side="bottom", fill="x", pady=(10, 0))
     botones = ttk.Frame(contenedor)
-    botones.pack(fill="x", pady=(0, 10))
-    for texto, accion in [
-        ("Crear", crear),
-        ("Actualizar", actualizar),
-        ("Eliminar", eliminar),
-        ("Limpiar", limpiar),
-        ("Recargar", cargar_datos)
-    ]:
-        ttk.Button(botones, text=texto, command=accion).pack(side="left", padx=(0, 6))
+    botones.pack(side="bottom", fill="x", pady=(12, 0))
+    principales = ttk.Frame(botones)
+    principales.pack(side="left")
+    ttk.Button(principales, text="Crear", command=crear, style="Primario.TButton").pack(side="left", padx=(0, 8))
+    ttk.Button(principales, text="Actualizar", command=actualizar).pack(side="left")
+    secundarias = ttk.Frame(botones)
+    secundarias.pack(side="right")
+    ttk.Button(secundarias, text="Limpiar", command=limpiar, style="Discreto.TButton").pack(side="left", padx=(0, 8))
+    ttk.Button(secundarias, text="Eliminar", command=eliminar, style="Eliminar.TButton").pack(side="left")
 
-    marco_tabla = ttk.Frame(contenedor)
-    marco_tabla.pack(fill="both", expand=True)
+    listado = ttk.Frame(contenedor, style="Panel.TFrame")
+    listado.pack(fill="both", expand=True)
+    controles_tabla = ttk.Frame(listado, padding=(12, 8))
+    controles_tabla.pack(fill="x")
+    ttk.Label(controles_tabla, text="Listado", style="TituloPanel.TLabel").pack(side="left")
+    ttk.Button(controles_tabla, text="Recargar", command=cargar_datos, style="Discreto.TButton").pack(side="right")
 
-    tabla = ttk.Treeview(marco_tabla, columns=("id", "nombre", "descripcion"), show="headings", selectmode="browse")
+    ttk.Label(listado, textvariable=cantidad, style="Ayuda.TLabel").pack(side="bottom", fill="x", padx=12, pady=8)
+    ttk.Frame(listado, height=1, style="Linea.TFrame").pack(side="bottom", fill="x")
+    marco_tabla = ttk.Frame(listado)
+    marco_tabla.pack(fill="both", expand=True, padx=1)
+    marco_tabla.columnconfigure(0, weight=1)
+    marco_tabla.rowconfigure(0, weight=1)
+
+    tabla = ttk.Treeview(marco_tabla, columns=("id", "nombre", "descripcion"), displaycolumns=("nombre", "descripcion"), show="headings", selectmode="browse")
     for columna, titulo, ancho in [
-        ("id", "ID", 60),
-        ("nombre", "Nombre", 220),
-        ("descripcion", "Descripción", 440)
+        ("id", "ID", 50),
+        ("nombre", "Nombre", 230),
+        ("descripcion", "Descripción", 600)
     ]:
-        tabla.heading(columna, text=titulo)
-        tabla.column(columna, width=ancho, minwidth=50)
-    tabla.column("id", stretch=False)
+        tabla.heading(columna, text=titulo, anchor="w")
+        tabla.column(columna, width=ancho, minwidth=60)
+    tabla.tag_configure("par", background=COLORES["fila"])
+    tabla.tag_configure("impar", background=COLORES["superficie"])
 
-    barra = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla.yview)
-    tabla.configure(yscrollcommand=barra.set)
-    tabla.pack(side="left", fill="both", expand=True)
-    barra.pack(side="right", fill="y")
+    barra_vertical = ttk.Scrollbar(marco_tabla, orient="vertical", command=tabla.yview)
+    barra_horizontal = ttk.Scrollbar(marco_tabla, orient="horizontal", command=tabla.xview)
+    tabla.configure(yscrollcommand=barra_vertical.set, xscrollcommand=barra_horizontal.set)
+    tabla.grid(row=0, column=0, sticky="nsew")
+    barra_vertical.grid(row=0, column=1, sticky="ns")
+    barra_horizontal.grid(row=1, column=0, sticky="ew")
     tabla.bind("<<TreeviewSelect>>", seleccionar)
-
-    ttk.Label(contenedor, textvariable=mensaje, wraplength=700).pack(fill="x", pady=(8, 0))
 
     cargar_datos()
     return cargar_datos
-
