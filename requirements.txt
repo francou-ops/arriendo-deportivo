@@ -1,0 +1,2 @@
+matplotlib>=3.11.2
+sqlalchemy>=2.1.9
